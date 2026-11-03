@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#24170f">
+  <title>Пицца Кликер</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=6">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div id="vignette" aria-hidden="true"></div>
+
+  <main id="ui">
+    <header id="hud">
+      <div class="brand">
+        <canvas id="logoIcon" class="brand-icon" width="20" height="20" aria-hidden="true"></canvas>
+        <h1>ПИЦЦА <span>КЛИКЕР</span></h1>
+      </div>
+      <section class="stats">
+        <div class="count">
+          <span id="count">0</span>
+          <span id="countWord">кусков</span>
+        </div>
+        <div class="stat-row"><span class="stat-label">в секунду:</span> <span id="cps">0</span></div>
+        <div class="stat-row"><span class="stat-label">за клик:</span> <span id="clickPower">+1</span></div>
+        <div class="stat-row dim stat-meta">
+          <span class="meta-item"><span class="stat-label">всего:</span> <span id="total">0</span></span>
+          <span class="meta-sep" aria-hidden="true">·</span>
+          <span class="meta-item"><span class="stat-label">множитель:</span> <span id="multiplier">×1</span></span>
+        </div>
+        <div class="stat-row prestige-row">
+          <span class="stat-label">престиж:</span> <span id="prestigeLevel">0</span>
+          <span id="prestigeBonus" class="prestige-bonus">+0%</span>
+        </div>
+        <div class="resource-meter crust-meter">
+          <div class="stat-row crust-row">
+            <canvas id="crustIcon" class="stat-icon" width="20" height="20" aria-hidden="true"></canvas>
+            <span class="stat-label">корочки:</span> <span id="crusts">0</span>
+            <button id="treeBtn" class="tree-btn" type="button" title="Древо корочек">ДРЕВО</button>
+          </div>
+          <div class="prestige-bar" aria-hidden="true"><i id="crustFill"></i></div>
+        </div>
+        <div class="resource-meter mozz-meter">
+          <div class="stat-row crust-row mozz-row">
+            <canvas id="mozzIcon" class="stat-icon" width="20" height="20" aria-hidden="true"></canvas>
+            <span class="stat-label">моцарелла:</span> <span id="mozzarella">0</span>
+            <button id="mozzBtn" class="tree-btn mozz-hud-btn" type="button" title="Склад моцареллы">СКЛАД</button>
+          </div>
+          <div class="prestige-bar mozz-bar" aria-hidden="true"><i id="mozzFillHud"></i></div>
+        </div>
+        <div class="buff-row" id="buffRow" hidden>
+          <span class="buff-dot" aria-hidden="true"></span>
+          <span id="buffText">Эффект</span>
+        </div>
+      </section>
+    </header>
+
+    <button id="resetBtn" class="icon-btn reset-btn" type="button" title="Начать заново" aria-label="Начать заново">↻ <span class="reset-label">СБРОС</span></button>
+
+    <aside id="store" aria-label="Магазин">
+      <div class="store-sticky">
+        <div class="store-head">
+          <h2>МАГАЗИН</h2>
+          <div class="head-actions">
+            <button id="skinsBtn" class="book-btn" type="button">СКИНЫ</button>
+            <button id="bookBtn" class="book-btn" type="button">РЕЦЕПТЫ <span id="recipeCount">0</span></button>
+          </div>
+        </div>
+
+        <div class="store-toolbar">
+          <div class="mode-switch" role="group" aria-label="Режим магазина">
+            <button id="buyModeBtn" class="mode-btn active" type="button" aria-pressed="true">КУПИТЬ</button>
+            <button id="sellModeBtn" class="mode-btn" type="button" aria-pressed="false">ПРОДАТЬ</button>
+          </div>
+          <div class="qty-switch" role="group" aria-label="Количество">
+            <button class="qty-btn active" data-qty="1" type="button" aria-pressed="true">×1</button>
+            <button class="qty-btn" data-qty="10" type="button" aria-pressed="false">×10</button>
+            <button class="qty-btn" data-qty="100" type="button" aria-pressed="false">×100</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="editorBtn" class="editor-open" type="button" hidden>ОТКРЫТЬ РЕДАКТОР <span id="chargeCount">0</span></button>
+
+      <div class="section-label">ПОСТРОЙКИ</div>
+      <div id="buildings" class="store-section"></div>
+
+      <div class="plate-status" id="plateStatusWrap">
+        <span class="plate-dot"></span>
+        <span id="plateStatus">На тарелке: 0 / 10</span>
+      </div>
+
+      <div class="section-label">ПРОКАЧКИ</div>
+      <div id="upgrades" class="store-section"></div>
+
+      <div class="section-label">СОБЫТИЯ</div>
+      <div id="eventsSection" class="store-section events-section"></div>
+
+      <div class="section-label heavenly-label">КОРОЧКИ</div>
+      <div id="heavenlySection" class="store-section"></div>
+      <div class="store-hint">Корочки дают за восхождения.<br>Древо постоянных улучшений открывается кнопкой «ДРЕВО».</div>
+
+      <div class="store-hint">Куски на тарелке — это купленная сила клика.<br>Когда тарелка полна, новые куски летят вокруг.</div>
+    </aside>
+
+    <div id="hint" class="click-hint">Кликай по пицце!</div>
+
+    <div id="pizzaWrap" role="button" tabindex="0" aria-label="Нажми на пиццу, чтобы получить куски">
+      <canvas id="pizza"></canvas>
+    </div>
+
+    <div id="floaters" aria-hidden="true"></div>
+
+    <footer>ПИЦЦА КЛИКЕР · клик по пицце — куски</footer>
+  </main>
+
+  <div id="editorModal" class="modal" hidden>
+    <div class="modal-panel editor-panel" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="editorTitle">РЕДАКТОР ПИЦЦЫ</h2>
+          <p class="modal-sub">Шеф бросит все открытые ингредиенты, а в рецепт попадут первые финишировавшие. Максимум в рецепте: <b id="slotCount">1</b>.</p>
+        </div>
+        <button id="editorClose" class="icon-btn" type="button" aria-label="Закрыть редактор">×</button>
+      </div>
+
+      <div class="editor-body">
+        <div class="plinko-wrap">
+          <canvas id="plinko" aria-label="Гонка ингредиентов"></canvas>
+        </div>
+
+        <aside class="editor-side">
+          <div class="side-block">
+            <h3>ИНГРЕДИЕНТЫ</h3>
+            <div id="editorIngredients" class="ingredient-list"></div>
+          </div>
+
+          <div class="side-block result-block">
+            <h3>РЕЗУЛЬТАТ</h3>
+            <div id="editorResult" class="editor-result">Запусти гонку, чтобы шеф выбрал ингредиенты.</div>
+          </div>
+
+          <div class="editor-actions">
+            <button id="raceBtn" class="pixel-btn" type="button">ЗАПУСТИТЬ ГОНКУ</button>
+            <button id="acceptBtn" class="pixel-btn accept" type="button" hidden>ЗАБРАТЬ РЕЦЕПТ</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div id="bookModal" class="modal" hidden>
+    <div class="modal-panel book-panel" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="bookTitle">КНИГА РЕЦЕПТОВ</h2>
+          <p class="modal-sub" id="bookSummary"></p>
+        </div>
+        <button id="bookClose" class="icon-btn" type="button" aria-label="Закрыть книгу рецептов">×</button>
+      </div>
+      <div id="bookGrid" class="book-grid"></div>
+    </div>
+  </div>
+
+  <div id="skinModal" class="modal" hidden>
+    <div class="modal-panel skin-panel" role="dialog" aria-modal="true" aria-labelledby="skinTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="skinTitle">СКИНЫ ПИЦЦЫ</h2>
+          <p class="modal-sub">Выбери облик пиццы, как телефон на витрине. Вкус и производство не меняются.</p>
+        </div>
+        <button id="skinClose" class="icon-btn" type="button" aria-label="Закрыть скины">×</button>
+      </div>
+
+      <div class="skin-body">
+        <div class="skin-stage">
+          <button id="skinPrev" class="skin-nav prev" type="button" aria-label="Предыдущий скин">‹</button>
+          <div class="skin-stage-inner">
+            <canvas id="skinPreview" width="256" height="256" aria-label="Предпросмотр пиццы"></canvas>
+            <div class="skin-stage-floor" aria-hidden="true"></div>
+          </div>
+          <button id="skinNext" class="skin-nav next" type="button" aria-label="Следующий скин">›</button>
+        </div>
+
+        <div class="skin-info">
+          <div id="skinBadge" class="skin-badge">СКИН 1 / 7</div>
+          <h3 id="skinName">Классика</h3>
+          <p id="skinTagline" class="skin-tagline"></p>
+          <dl class="skin-specs">
+            <div><dt>тесто</dt><dd id="skinDough">классическое</dd></div>
+            <div><dt>настроение</dt><dd id="skinMood">ностальгическое</dd></div>
+          </dl>
+          <button id="skinApply" class="pixel-btn accept" type="button">НАДЕТЬ СКИН</button>
+          <div class="skin-hint">Скин сохраняется автоматически и остаётся после восхождения.</div>
+        </div>
+      </div>
+
+      <div id="skinRail" class="skin-rail" role="listbox" aria-label="Скины пиццы"></div>
+    </div>
+  </div>
+
+  <div id="ascendModal" class="modal" hidden>
+    <div class="modal-panel ascend-panel" role="dialog" aria-modal="true" aria-labelledby="ascendTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="ascendTitle">ДРЕВО КОРОЧЕК</h2>
+          <p class="modal-sub">Восхождение сбрасывает куски, постройки, прокачки и рецепты. Корочки и древо остаются навсегда.</p>
+        </div>
+        <button id="ascendClose" class="icon-btn" type="button" aria-label="Закрыть древо">×</button>
+      </div>
+
+      <div class="ascend-summary">
+        <div class="ascend-stat">
+          <span>престиж</span>
+          <b id="ascendLevel">0</b>
+          <small id="ascendBonus">+0% к производству</small>
+        </div>
+        <div class="ascend-stat">
+          <span>корочки</span>
+          <b id="ascendCrusts">0</b>
+        </div>
+        <div class="ascend-stat">
+          <span>при восхождении</span>
+          <b id="ascendGain">+0</b>
+        </div>
+        <button id="ascendBtn" class="pixel-btn danger" type="button">ВОЗНЕСТИСЬ</button>
+      </div>
+
+      <div class="tree-scroll">
+        <div class="tree-canvas" id="treeCanvas">
+          <svg class="tree-lines" id="treeLines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mozzModal" class="modal" hidden>
+    <div class="modal-panel mozz-panel" role="dialog" aria-modal="true" aria-labelledby="mozzTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="mozzTitle">МОЦАРЕЛЛА</h2>
+          <p class="modal-sub">Шарик моцареллы созревает сам за 24 часа. Трать её на уровни построек и мини-игры.</p>
+        </div>
+        <button id="mozzClose" class="icon-btn" type="button" aria-label="Закрыть склад моцареллы">×</button>
+      </div>
+
+      <div class="mozz-summary">
+        <canvas id="mozzBig" class="mozz-big" width="48" height="48" aria-hidden="true"></canvas>
+        <div class="mozz-summary-info">
+          <div class="mozz-total"><b id="mozzCount">0</b> <span>шариков</span></div>
+          <div class="mozz-status" id="mozzStatus">до следующего шарика: 24ч 00м</div>
+          <div class="mozz-bar big" aria-hidden="true"><i id="mozzFill"></i></div>
+        </div>
+      </div>
+
+      <div id="mozzBuildings" class="mozz-buildings"></div>
+    </div>
+  </div>
+
+  <div id="miniModal" class="modal" hidden>
+    <div class="modal-panel mini-panel" role="dialog" aria-modal="true" aria-labelledby="miniTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="miniTitle">МИНИ-ИГРА</h2>
+          <p class="modal-sub" id="miniSub"></p>
+        </div>
+        <button id="miniClose" class="icon-btn" type="button" aria-label="Закрыть мини-игру">×</button>
+      </div>
+      <div id="miniBody" class="mini-body"></div>
+    </div>
+  </div>
+
+  <div id="marketModal" class="modal" hidden>
+    <div class="modal-panel market-panel" role="dialog" aria-modal="true" aria-labelledby="marketTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="marketTitle">БИРЖА «ВАЛОРАНТ»</h2>
+          <p class="modal-sub market-sub">Цены меняются раз в минуту. Кусков на счету: <b id="marketSlices">0</b><span id="marketDelta" class="market-delta" aria-hidden="true"></span> · следующее изменение: <b id="marketNext">0с</b></p>
+        </div>
+        <button id="marketClose" class="icon-btn" type="button" aria-label="Закрыть биржу">×</button>
+      </div>
+      <div class="market-chart-wrap">
+        <canvas id="marketChart" class="market-chart" width="720" height="200" aria-label="График изменения цен"></canvas>
+        <div id="marketLegend" class="market-legend"></div>
+      </div>
+      <div id="marketGrid" class="market-grid"></div>
+    </div>
+  </div>
+
+  <div id="eventLayer" class="event-layer" hidden>
+    <div class="event-banner">
+      <div class="event-banner-text">
+        <h2>ХРАМ ВОЛОСАТЫЕ УСЫ</h2>
+        <p id="eventStatus">Культисты приближаются...</p>
+      </div>
+      <button id="eventStop" class="pixel-btn danger" type="button">ПОКИНУТЬ ХРАМ</button>
+    </div>
+    <div id="eventStage" class="event-stage"></div>
+  </div>
+
+  <div id="confirmModal" class="modal" hidden>
+    <div class="modal-panel confirm-panel" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h2 id="confirmTitle">НАЧАТЬ ЗАНОВО?</h2>
+      <p id="confirmText">Весь прогресс, рецепты и купленные прокачки будут потеряны.</p>
+      <div class="confirm-actions">
+        <button id="confirmNo" class="pixel-btn" type="button">ОТМЕНА</button>
+        <button id="confirmYes" class="pixel-btn danger" type="button">СБРОСИТЬ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="script.js?v=6"></script>
+</body>
+</html>
